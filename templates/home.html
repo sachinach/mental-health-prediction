@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Mental Health Risk Prediction — Screen Early, Act Sooner{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-7">
+        <span class="eyebrow">Wellbeing screening · Machine learning</span>
+        <h1 class="font-display">Mental Health<br>Risk Prediction</h1>
+        <p class="lead">A trained classification model reads sleep, stress, workload and support signals from a short questionnaire and returns a clear, explainable risk read — so a check-in can happen before a crisis does.</p>
+        <div class="d-flex flex-wrap gap-3 mt-4">
+          <a href="{% url 'predict' %}" class="btn btn-hero-primary">Predict Now <i class="bi bi-arrow-right ms-1"></i></a>
+          <a href="{% url 'about' %}" class="btn btn-hero-secondary">How it works</a>
+        </div>
+      </div>
+      <div class="col-lg-5 mt-5 mt-lg-0">
+        <div class="clarity-dial">
+          <svg viewBox="0 0 200 200">
+            <defs>
+              <linearGradient id="dialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#d6a253"/>
+                <stop offset="100%" stop-color="#6e9887"/>
+              </linearGradient>
+            </defs>
+            <circle class="dial-track" cx="100" cy="100" r="80" stroke-dasharray="376.8" stroke-dashoffset="94.2" transform="rotate(135 100 100)"/>
+            <circle class="dial-arc" data-value="94" cx="100" cy="100" r="80" transform="rotate(135 100 100)"/>
+          </svg>
+          <div class="dial-center">
+            <span class="dial-value">0.96</span>
+            <span class="dial-label">Model AUC · ROC</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="text-center mb-5 reveal-on-scroll">
+      <span class="section-eyebrow">Why this exists</span>
+      <h2 class="section-title mt-2">Four reasons this approach works</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3 reveal-on-scroll">
+        <div class="feature-card">
+          <div class="icon-badge"><i class="bi bi-radar fs-5"></i></div>
+          <h3>Early Detection</h3>
+          <p>Flags elevated risk from everyday signals — sleep, stress, workload — well before symptoms become a visible crisis.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3 reveal-on-scroll">
+        <div class="feature-card">
+          <div class="icon-badge"><i class="bi bi-cpu fs-5"></i></div>
+          <h3>Machine Learning</h3>
+          <p>A Random Forest classifier trained and validated on survey data, selected for the best balance of accuracy and generalization.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3 reveal-on-scroll">
+        <div class="feature-card">
+          <div class="icon-badge"><i class="bi bi-people fs-5"></i></div>
+          <h3>Employee Wellness</h3>
+          <p>Built for HR and wellbeing teams to triage check-ins fairly, using behavioural signals rather than demographics.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3 reveal-on-scroll">
+        <div class="feature-card">
+          <div class="icon-badge"><i class="bi bi-shield-lock fs-5"></i></div>
+          <h3>Data Privacy</h3>
+          <p>Predictions are stored locally in a flat CSV, not a third-party database — you control where the data lives.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight" style="background: var(--paper-raised); border-top: 1px solid rgba(36,52,77,.06); border-bottom: 1px solid rgba(36,52,77,.06);">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-8 reveal-on-scroll">
+        <h2 class="section-title mb-2">Ready to check in with yourself — or your team?</h2>
+        <p class="text-secondary mb-0" style="max-width: 40rem;">The prediction takes about a minute: thirteen questions covering sleep, stress, workload and support. No login required.</p>
+      </div>
+      <div class="col-lg-4 text-lg-end reveal-on-scroll">
+        <a href="{% url 'predict' %}" class="btn btn-submit">Start the screening <i class="bi bi-arrow-right ms-1"></i></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

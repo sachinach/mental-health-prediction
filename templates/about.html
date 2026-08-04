@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}About — Mental Health Risk Prediction{% endblock %}
+
+{% block content %}
+<section class="section-tight" style="background: var(--dusk-deep); color: var(--paper);">
+  <div class="container">
+    <span class="eyebrow">Methodology</span>
+    <h1 class="font-display mt-2 mb-0" style="font-size: 2.2rem;">About this project</h1>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-9">
+
+        <div class="form-card mb-4">
+          <h2 class="section-title" style="font-size: 1.4rem;">Business problem</h2>
+          <p class="text-secondary mb-0">Students and working professionals under sustained stress often don't self-report symptoms until performance, attendance, or wellbeing has already been affected. Waiting for a self-report or an infrequent check-in means intervention happens later than it should.</p>
+        </div>
+
+        <div class="form-card mb-4">
+          <h2 class="section-title" style="font-size: 1.4rem;">Business objective</h2>
+          <p class="text-secondary mb-0">Turn a short, thirteen-question survey into a binary risk signal — Low Risk or High Risk — that an individual or a wellbeing team can act on early, without requiring a clinical assessment to get a first read.</p>
+        </div>
+
+        <div class="form-card mb-4">
+          <h2 class="section-title" style="font-size: 1.4rem;">Machine learning workflow</h2>
+          <ol class="text-secondary" style="line-height: 2;">
+            <li><strong>Data cleaning</strong> — duplicate removal, median imputation for missing survey responses, category normalization.</li>
+            <li><strong>Target construction</strong> — clinician-rated severity collapsed into a Low Risk / High Risk binary label.</li>
+            <li><strong>Feature engineering</strong> — a Wellbeing Index (sleep, activity, mood, screen time) and a Pressure Index (workload weighted by work-life balance).</li>
+            <li><strong>Encoding</strong> — label encoding for gender, one-hot encoding for occupation.</li>
+            <li><strong>Feature selection</strong> — features with negligible correlation to the target (|r| &lt; 0.03) were dropped.</li>
+            <li><strong>Scaling</strong> — numeric features standardized with a scaler fit on the training split only.</li>
+            <li><strong>Class balancing</strong> — a nearest-neighbor interpolation (SMOTE-style) oversampled the minority class in the training set only.</li>
+            <li><strong>Model comparison &amp; tuning</strong> — seven algorithms benchmarked; the strongest performer tuned with grid search over cross-validation.</li>
+          </ol>
+        </div>
+
+        <div class="form-card mb-4">
+          <h2 class="section-title" style="font-size: 1.4rem;">Algorithms evaluated</h2>
+          <div class="row g-3 mt-1">
+            <div class="col-md-6 col-lg-4"><div class="d-flex align-items-center gap-2 p-3" style="background: var(--paper); border-radius: var(--radius-sm);"><i class="bi bi-diagram-3 text-secondary"></i><span class="small">Logistic Regression</span></div></div>
+            <div class="col-md-6 col-lg-4"><div class="d-flex align-items-center gap-2 p-3" style="background: var(--paper); border-radius: var(--radius-sm);"><i class="bi bi-diagram-3 text-secondary"></i><span class="small">Decision Tree</span></div></div>
+            <div class="col-md-6 col-lg-4"><div class="d-flex align-items-center gap-2 p-3" style="background: var(--paper); border-radius: var(--radius-sm);"><i class="bi bi-diagram-3 text-secondary"></i><span class="small">Random Forest</span></div></div>
+            <div class="col-md-6 col-lg-4"><div class="d-flex align-items-center gap-2 p-3" style="background: var(--paper); border-radius: var(--radius-sm);"><i class="bi bi-diagram-3 text-secondary"></i><span class="small">K-Nearest Neighbors</span></div></div>
+            <div class="col-md-6 col-lg-4"><div class="d-flex align-items-center gap-2 p-3" style="background: var(--paper); border-radius: var(--radius-sm);"><i class="bi bi-diagram-3 text-secondary"></i><span class="small">Support Vector Machine</span></div></div>
+            <div class="col-md-6 col-lg-4"><div class="d-flex align-items-center gap-2 p-3" style="background: var(--paper); border-radius: var(--radius-sm);"><i class="bi bi-diagram-3 text-secondary"></i><span class="small">Naive Bayes</span></div></div>
+            <div class="col-md-6 col-lg-4"><div class="d-flex align-items-center gap-2 p-3" style="background: var(--paper); border-radius: var(--radius-sm);"><i class="bi bi-diagram-3 text-secondary"></i><span class="small">Gradient Boosting</span></div></div>
+          </div>
+          {% if metrics %}
+          <div class="row g-3 mt-3 text-center">
+            <div class="col"><div class="font-mono small text-secondary">Final model</div><div class="font-display" style="font-size:1.1rem;">{{ metrics.model_name }}</div></div>
+            <div class="col"><div class="font-mono small text-secondary">Accuracy</div><div class="font-display" style="font-size:1.1rem;">{{ metrics.accuracy|floatformat:3 }}</div></div>
+            <div class="col"><div class="font-mono small text-secondary">Precision</div><div class="font-display" style="font-size:1.1rem;">{{ metrics.precision|floatformat:3 }}</div></div>
+            <div class="col"><div class="font-mono small text-secondary">Recall</div><div class="font-display" style="font-size:1.1rem;">{{ metrics.recall|floatformat:3 }}</div></div>
+            <div class="col"><div class="font-mono small text-secondary">ROC AUC</div><div class="font-display" style="font-size:1.1rem;">{{ metrics.roc_auc|floatformat:3 }}</div></div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="form-card">
+          <h2 class="section-title" style="font-size: 1.4rem;">Future improvements</h2>
+          <ul class="text-secondary" style="line-height: 2;">
+            <li>Collect longitudinal data to track risk trends per user over time, not just single-point-in-time snapshots.</li>
+            <li>Add model explainability (e.g. SHAP values) directly on the result page so each prediction shows which inputs drove it.</li>
+            <li>Support authenticated accounts so individuals can privately track their own history rather than a shared CSV log.</li>
+            <li>Periodic retraining as more labeled data becomes available, with a versioned model registry.</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

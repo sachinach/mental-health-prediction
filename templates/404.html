@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Page not found — Mental Health Risk Prediction{% endblock %}
+{% block content %}
+<section class="section" style="min-height: 60vh; display:flex; align-items:center;">
+  <div class="container text-center">
+    <div class="font-mono text-secondary mb-2">Error 404</div>
+    <h1 class="font-display mb-3" style="font-size: 2.2rem;">This page doesn't exist</h1>
+    <p class="text-secondary mb-4">The link you followed may be broken, or the page may have moved.</p>
+    <a href="{% url 'home' %}" class="btn btn-submit">Back to home</a>
+  </div>
+</section>
+{% endblock %}

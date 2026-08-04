@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}History — Mental Health Risk Prediction{% endblock %}
+
+{% block content %}
+<section class="section-tight" style="background: var(--dusk-deep); color: var(--paper);">
+  <div class="container d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <span class="eyebrow">Local records</span>
+      <h1 class="font-display mt-2 mb-0" style="font-size: 2rem;">Prediction history</h1>
+    </div>
+    <a href="{% url 'download_history' %}" class="btn btn-hero-secondary"><i class="bi bi-download me-1"></i> Download CSV</a>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+
+    <form method="get" class="row g-2 mb-4">
+      <div class="col-md-5">
+        <div class="input-group">
+          <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by gender, occupation, age, or result…">
+        </div>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-submit">Search</button>
+        {% if query %}<a href="{% url 'history' %}" class="btn btn-reset-form">Clear</a>{% endif %}
+      </div>
+    </form>
+
+    {% if records %}
+    <div class="table-responsive form-card p-0" style="overflow: hidden;">
+      <table class="table table-hover history-table mb-0" id="historyTable">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Age</th>
+            <th>Gender</th>
+            <th>Occupation</th>
+            <th>Prediction</th>
+            <th>Probability</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in records %}
+          <tr>
+            <td class="font-mono small">{{ row.Timestamp }}</td>
+            <td>{{ row.Age }}</td>
+            <td>{{ row.Gender }}</td>
+            <td>{{ row.Occupation }}</td>
+            <td>
+              {% if row.Prediction == "High Risk" %}
+                <span class="badge badge-risk-high px-3 py-2 rounded-pill">High Risk</span>
+              {% else %}
+                <span class="badge badge-risk-low px-3 py-2 rounded-pill">Low Risk</span>
+              {% endif %}
+            </td>
+            <td class="font-mono small">{{ row.Probability }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <nav class="mt-4 d-flex justify-content-center">
+      <ul class="pagination" id="historyPager"></ul>
+    </nav>
+    {% else %}
+    <div class="form-card text-center py-5">
+      <i class="bi bi-inbox" style="font-size: 2.5rem; color: var(--sage-deep);"></i>
+      <h5 class="font-display mt-3">No predictions yet</h5>
+      <p class="text-secondary">Run a screening to see it appear here.</p>
+      <a href="{% url 'predict' %}" class="btn btn-submit mt-2">Predict now</a>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+{% endblock %}

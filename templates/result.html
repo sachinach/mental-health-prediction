@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Result — Mental Health Risk Prediction{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-9">
+
+        <div class="result-banner {% if result.prediction == 1 %}risk-high{% else %}risk-low{% endif %} mb-4">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <span class="eyebrow">Prediction result</span>
+              <h1 class="font-display mt-2 mb-1" style="font-size: 2rem;">{{ result.label }}</h1>
+              <p class="mb-0" style="opacity:.9;">Confidence: {{ result.confidence }}%</p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+              <i class="bi {% if result.prediction == 1 %}bi-exclamation-triangle{% else %}bi-check-circle{% endif %}" style="font-size: 3rem; opacity:.85;"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card mb-4">
+          <h5 class="font-display mb-3" style="color: var(--dusk-deep);">Risk meter</h5>
+          <div class="d-flex justify-content-between small text-secondary mb-2">
+            <span>Low risk</span>
+            <span>High risk</span>
+          </div>
+          <div class="risk-meter-track">
+            <div class="risk-meter-fill {% if result.prediction == 1 %}risk-high{% else %}risk-low{% endif %}" style="width: {{ result.probability_high_risk }}%;"></div>
+          </div>
+          <div class="row mt-3 text-center">
+            <div class="col-6">
+              <div class="font-mono small text-secondary">P(Low Risk)</div>
+              <div class="font-display" style="font-size:1.4rem; color: var(--sage-deep);">{{ result.probability_low_risk }}%</div>
+            </div>
+            <div class="col-6">
+              <div class="font-mono small text-secondary">P(High Risk)</div>
+              <div class="font-display" style="font-size:1.4rem; color: var(--danger);">{{ result.probability_high_risk }}%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="form-card h-100">
+              <h5 class="font-display mb-3" style="color: var(--dusk-deep);">Summary of your input</h5>
+              <ul class="list-unstyled small mb-0">
+                <li class="d-flex justify-content-between py-1 border-bottom"><span class="text-secondary">Age</span><span>{{ input.age }}</span></li>
+                <li class="d-flex justify-content-between py-1 border-bottom"><span class="text-secondary">Gender</span><span>{{ input.gender }}</span></li>
+                <li class="d-flex justify-content-between py-1 border-bottom"><span class="text-secondary">Occupation</span><span>{{ input.occupation }}</span></li>
+                <li class="d-flex justify-content-between py-1 border-bottom"><span class="text-secondary">Sleep</span><span>{{ input.sleep_hours }} hrs</span></li>
+                <li class="d-flex justify-content-between py-1 border-bottom"><span class="text-secondary">Stress level</span><span>{{ input.stress_level }}/10</span></li>
+                <li class="d-flex justify-content-between py-1"><span class="text-secondary">Work-life balance</span><span>{{ input.work_life_balance }}/10</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-card h-100">
+              <h5 class="font-display mb-3" style="color: var(--dusk-deep);">Suggested next steps</h5>
+              {% for rec in result.recommendations %}
+                <div class="recommendation-item">
+                  <i class="bi bi-check2-circle rec-icon"></i>
+                  <span class="small">{{ rec }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-3 mt-4">
+          <a href="{% url 'predict' %}" class="btn btn-submit"><i class="bi bi-arrow-repeat me-1"></i> Run another prediction</a>
+          <a href="{% url 'history' %}" class="btn btn-reset-form">View history</a>
+        </div>
+
+        <p class="small text-secondary mt-4"><i class="bi bi-info-circle me-1"></i>This is a screening estimate from a machine learning model, not a clinical diagnosis. If you're in distress, please reach out to a mental health professional or a crisis line in your area.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

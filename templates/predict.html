@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Prediction — Mental Health Risk Prediction{% endblock %}
+
+{% block content %}
+<section class="section-tight" style="background: var(--dusk-deep); color: var(--paper);">
+  <div class="container">
+    <span class="eyebrow">Step 1 of 1</span>
+    <h1 class="font-display mt-2 mb-2" style="font-size: 2.2rem;">Run a screening</h1>
+    <p class="mb-0" style="color: rgba(243,241,236,.75); max-width: 40rem;">Answer honestly and consistently — the model was trained on self-reported survey data, so accurate inputs give the most useful read.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-9">
+        <div class="form-card">
+          <form id="predictionForm" method="post" novalidate class="needs-validation">
+            {% csrf_token %}
+
+            <div class="form-section-label">Personal</div>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.age.id_for_label }}">Age</label>
+                {{ form.age }}
+                <div class="form-text text-secondary">{{ form.age.help_text }}</div>
+                <div class="invalid-feedback">{{ form.age.errors|striptags }}</div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.gender.id_for_label }}">Gender</label>
+                {{ form.gender }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.occupation.id_for_label }}">Occupation</label>
+                {{ form.occupation }}
+              </div>
+            </div>
+
+            <div class="form-section-label">Sleep &amp; lifestyle</div>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.sleep_hours.id_for_label }}">Sleep hours / night</label>
+                {{ form.sleep_hours }}
+                <div class="form-text text-secondary">{{ form.sleep_hours.help_text }}</div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.sleep_quality.id_for_label }}">Sleep quality (1-10)</label>
+                {{ form.sleep_quality }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.physical_activity_days.id_for_label }}">Active days / week</label>
+                {{ form.physical_activity_days }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="{{ form.social_media_hours.id_for_label }}">Social media / screen hours per day</label>
+                {{ form.social_media_hours }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="{{ form.work_life_balance.id_for_label }}">Work-life balance (1-10)</label>
+                {{ form.work_life_balance }}
+              </div>
+            </div>
+
+            <div class="form-section-label">Mental state</div>
+            <div class="row g-3">
+              <div class="col-md-6 col-lg-3">
+                <label class="form-label" for="{{ form.stress_level.id_for_label }}">Stress level (1-10)</label>
+                {{ form.stress_level }}
+              </div>
+              <div class="col-md-6 col-lg-3">
+                <label class="form-label" for="{{ form.anxiety_score.id_for_label }}">Anxiety (1-10)</label>
+                {{ form.anxiety_score }}
+              </div>
+              <div class="col-md-6 col-lg-3">
+                <label class="form-label" for="{{ form.depression_score.id_for_label }}">Depressive symptoms (1-10)</label>
+                {{ form.depression_score }}
+              </div>
+              <div class="col-md-6 col-lg-3">
+                <label class="form-label" for="{{ form.mood_score.id_for_label }}">Overall mood (1-10)</label>
+                {{ form.mood_score }}
+              </div>
+            </div>
+
+            <div class="form-section-label">Environment &amp; support</div>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.academic_work_pressure.id_for_label }}">Academic / work pressure (1-10)</label>
+                {{ form.academic_work_pressure }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.concentration_level.id_for_label }}">Concentration (1-10)</label>
+                {{ form.concentration_level }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label" for="{{ form.social_support.id_for_label }}">Social support (1-10)</label>
+                {{ form.social_support }}
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-3 mt-4 pt-2">
+              <button type="submit" class="btn btn-submit"><i class="bi bi-shield-check me-1"></i> Get my prediction</button>
+              <button type="button" id="resetFormBtn" class="btn btn-reset-form">Reset form</button>
+            </div>
+            <p class="small text-secondary mt-3 mb-0"><i class="bi bi-lock me-1"></i>Your response is only stored in this app's local prediction history — never shared externally.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
