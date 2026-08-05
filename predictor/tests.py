@@ -48,3 +48,7 @@ class ViewSmokeTests(TestCase):
     def test_history_page_loads(self):
         response = self.client.get(reverse("history"))
         self.assertEqual(response.status_code, 200)
+
+    def test_analytics_page_loads(self):
+        response = self.client.get(reverse("analytics"))
+        self.assertEqual(response.status_code, 200)

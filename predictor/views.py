@@ -7,8 +7,9 @@ from django.http import HttpResponse
 from django.shortcuts import redirect, render
 
 from .forms import MentalHealthPredictionForm
-from .utils import (ModelLoadError, PredictionError, get_model_metrics,
-                     predict_risk, read_history, save_prediction)
+from .utils import (ModelLoadError, PredictionError, get_analytics,
+                     get_model_metrics, predict_risk, read_history,
+                     save_prediction)
 
 logger = logging.getLogger("predictor")
 
@@ -96,6 +97,17 @@ def about(request):
     except ModelLoadError:
         metrics = None
     return render(request, "about.html", {"metrics": metrics})
+
+
+def analytics(request):
+    """Model analysis page — per-algorithm metrics (including F1 score)
+    and the training-time comparison plots."""
+    try:
+        data = get_analytics()
+    except ModelLoadError as exc:
+        messages.error(request, str(exc))
+        data = None
+    return render(request, "analytics.html", {"data": data})
 
 
 def error_404(request, exception=None):
