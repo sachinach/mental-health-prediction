@@ -1,0 +1,187 @@
+{
+  "final_model_name": "Random Forest",
+  "generated_at": "2026-08-05 04:44:31",
+  "dataset_shape": {
+    "rows": 2000,
+    "real_rows": 500,
+    "synthetic_rows": 1500,
+    "features_used": 16
+  },
+  "class_balance": {
+    "before": {
+      "Low Risk": 789,
+      "High Risk": 811
+    },
+    "after": {
+      "Low Risk": 811,
+      "High Risk": 811
+    }
+  },
+  "model_results": [
+    {
+      "Model": "SVM",
+      "Accuracy": 0.94,
+      "Precision": 0.9837,
+      "Recall": 0.896,
+      "F1_Score": 0.9378,
+      "ROC_AUC": 0.9897
+    },
+    {
+      "Model": "Logistic Regression",
+      "Accuracy": 0.975,
+      "Precision": 1.0,
+      "Recall": 0.9505,
+      "F1_Score": 0.9746,
+      "ROC_AUC": 0.9896
+    },
+    {
+      "Model": "Gradient Boosting",
+      "Accuracy": 0.945,
+      "Precision": 0.9369,
+      "Recall": 0.9554,
+      "F1_Score": 0.9461,
+      "ROC_AUC": 0.981
+    },
+    {
+      "Model": "Random Forest",
+      "Accuracy": 0.93,
+      "Precision": 0.9531,
+      "Recall": 0.9059,
+      "F1_Score": 0.9289,
+      "ROC_AUC": 0.9761
+    },
+    {
+      "Model": "Naive Bayes",
+      "Accuracy": 0.8775,
+      "Precision": 0.837,
+      "Recall": 0.9406,
+      "F1_Score": 0.8858,
+      "ROC_AUC": 0.9666
+    },
+    {
+      "Model": "Decision Tree",
+      "Accuracy": 0.8975,
+      "Precision": 0.9005,
+      "Recall": 0.896,
+      "F1_Score": 0.8983,
+      "ROC_AUC": 0.8975
+    },
+    {
+      "Model": "KNN",
+      "Accuracy": 0.8375,
+      "Precision": 0.8827,
+      "Recall": 0.7822,
+      "F1_Score": 0.8294,
+      "ROC_AUC": 0.8905
+    }
+  ],
+  "best_params": {
+    "max_depth": null,
+    "min_samples_leaf": 1,
+    "min_samples_split": 2,
+    "n_estimators": 250
+  },
+  "final_test_metrics": {
+    "accuracy": 0.93,
+    "precision": 0.953125,
+    "recall": 0.905940594059406,
+    "f1": 0.9289340101522843,
+    "roc_auc": 0.9761351135113512
+  },
+  "top_features": [
+    {
+      "feature": "Pressure_Index",
+      "importance": 0.1955
+    },
+    {
+      "feature": "academic_work_pressure",
+      "importance": 0.1828
+    },
+    {
+      "feature": "stress_level",
+      "importance": 0.1302
+    },
+    {
+      "feature": "anxiety_score",
+      "importance": 0.0885
+    },
+    {
+      "feature": "depression_score",
+      "importance": 0.0864
+    },
+    {
+      "feature": "work_life_balance",
+      "importance": 0.0643
+    },
+    {
+      "feature": "Wellbeing_Index",
+      "importance": 0.0505
+    },
+    {
+      "feature": "social_support",
+      "importance": 0.0354
+    },
+    {
+      "feature": "social_media_hours",
+      "importance": 0.0311
+    },
+    {
+      "feature": "sleep_hours",
+      "importance": 0.0269
+    },
+    {
+      "feature": "concentration_level",
+      "importance": 0.0243
+    },
+    {
+      "feature": "mood_score",
+      "importance": 0.0242
+    }
+  ],
+  "weak_features_dropped": [
+    "Occ_Working Professional",
+    "Occ_Student"
+  ],
+  "plots": [
+    {
+      "file": "dataset_composition.png",
+      "title": "Dataset composition",
+      "description": "Real survey respondents vs. synthetically generated rows used for training."
+    },
+    {
+      "file": "model_comparison.png",
+      "title": "Model comparison across metrics",
+      "description": "Accuracy, precision, recall, F1 and ROC AUC for every algorithm tested."
+    },
+    {
+      "file": "f1_scores.png",
+      "title": "F1 score by algorithm",
+      "description": "Algorithms ranked by F1 score on the held-out test set."
+    },
+    {
+      "file": "confusion_matrix.png",
+      "title": "Confusion matrix",
+      "description": "Predicted vs actual outcomes for the final model (Random Forest)."
+    },
+    {
+      "file": "roc_curves.png",
+      "title": "ROC curves",
+      "description": "True vs false positive rate trade-off for every algorithm tested."
+    },
+    {
+      "file": "feature_importance.png",
+      "title": "Feature importance",
+      "description": "Top contributing features for the final model (Random Forest)."
+    },
+    {
+      "file": "class_balance.png",
+      "title": "Class balance before/after SMOTE",
+      "description": "Training-set label distribution before and after synthetic oversampling."
+    },
+    {
+      "file": "correlation.png",
+      "title": "Feature correlation with target",
+      "description": "Pearson correlation of each engineered feature with Mental_Health_Risk."
+    }
+  ]
+}
