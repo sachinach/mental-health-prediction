@@ -24,6 +24,7 @@ input a new user would supply on the prediction form.
 
 import pickle
 import warnings
+import os
 
 import numpy as np
 import pandas as pd
@@ -45,7 +46,7 @@ RANDOM_STATE = 42
 # ---------------------------------------------------------------------
 # 1. Load data
 # ---------------------------------------------------------------------
-df = pd.read_csv("mental_health_prediction.csv")
+df = pd.read_csv("dataset/mental_health_prediction.csv")
 print(f"Loaded {df.shape[0]} rows, {df.shape[1]} columns")
 
 # ---------------------------------------------------------------------
@@ -68,6 +69,69 @@ df["gender"] = df["gender"].str.strip()
 df["occupation"] = df["occupation"].str.strip()
 
 print("Remaining missing values:", df.isnull().sum().sum())
+
+df["data_source"] = "real"
+df["respondent_id"] = df.index  # each real respondent gets a stable id
+
+# ---------------------------------------------------------------------
+# 2b. Synthetic data generation
+# ---------------------------------------------------------------------
+# The real survey only has 500 respondents. To give the model more
+# training signal (and to demonstrate a realistic augmentation
+# technique), we generate synthetic respondents by bootstrapping a real
+# row and perturbing its numeric answers with small, bounded noise.
+# Categorical/clinical fields (gender, occupation, condition, severity,
+# treatment) are copied as-is from the sampled row, since those are
+# what the numeric answers were actually rated against - jittering the
+# numbers slightly around a real profile keeps the label meaningful
+# without inventing new clinical categories.
+INTEGER_SCALE_COLS = [
+    "sleep_quality", "academic_work_pressure", "physical_activity_days",
+    "stress_level", "anxiety_score", "depression_score", "work_life_balance",
+    "mood_score", "concentration_level", "social_support",
+]
+CONTINUOUS_COLS = ["sleep_hours", "social_media_hours"]
+
+SYNTHETIC_MULTIPLIER = 3  # generates 3 synthetic rows per real row
+NOISE_FRACTION = 0.08     # jitter size, as a fraction of each column's std
+
+
+def generate_synthetic_rows(source_df: pd.DataFrame, multiplier: int, seed: int) -> pd.DataFrame:
+    rng = np.random.RandomState(seed)
+    col_bounds = {
+        col: (source_df[col].min(), source_df[col].max())
+        for col in INTEGER_SCALE_COLS + CONTINUOUS_COLS + ["age"]
+    }
+    col_std = {col: max(source_df[col].std(), 1e-6) for col in INTEGER_SCALE_COLS + CONTINUOUS_COLS + ["age"]}
+
+    n_synthetic = len(source_df) * multiplier
+    sampled_idx = rng.choice(source_df.index, size=n_synthetic, replace=True)
+    synthetic = source_df.loc[sampled_idx].reset_index(drop=True).copy()
+
+    for col in INTEGER_SCALE_COLS:
+        noise = rng.normal(0, col_std[col] * NOISE_FRACTION, size=n_synthetic)
+        low, high = col_bounds[col]
+        synthetic[col] = np.clip(np.round(synthetic[col].values + noise), low, high)
+
+    for col in CONTINUOUS_COLS:
+        noise = rng.normal(0, col_std[col] * NOISE_FRACTION, size=n_synthetic)
+        low, high = col_bounds[col]
+        synthetic[col] = np.clip(np.round(synthetic[col].values + noise, 1), low, high)
+
+    age_noise = rng.randint(-1, 2, size=n_synthetic)  # -1, 0, or +1 year
+    low, high = col_bounds["age"]
+    synthetic["age"] = np.clip(synthetic["age"].values + age_noise, low, high)
+
+    synthetic["data_source"] = "synthetic"
+    return synthetic
+
+
+synthetic_df = generate_synthetic_rows(df, SYNTHETIC_MULTIPLIER, RANDOM_STATE)
+df = pd.concat([df, synthetic_df], ignore_index=True)
+print(f"Generated {len(synthetic_df)} synthetic rows -> combined dataset: {df.shape[0]} rows")
+
+df.to_csv("dataset/mental_health_prediction_augmented.csv", index=False)
+print("Saved combined (real + synthetic) dataset to dataset/mental_health_prediction_augmented.csv")
 
 # ---------------------------------------------------------------------
 # 3. Target construction
@@ -99,7 +163,7 @@ df["Gender_Enc"] = le_gender.fit_transform(df["gender"])
 # the dummy-variable trap (same treatment as Department in the notebook).
 df_encoded = pd.get_dummies(df, columns=["occupation"], prefix="Occ", drop_first=True)
 
-leak_cols = ["gender", "mental_health_condition", "severity", "treatment"]
+leak_cols = ["gender", "mental_health_condition", "severity", "treatment", "data_source"]
 df_encoded = df_encoded.drop(columns=leak_cols)
 
 occ_cols = [c for c in df_encoded.columns if c.startswith("Occ_")]
@@ -110,7 +174,7 @@ print(f"Shape after encoding: {df_encoded.shape}")
 # ---------------------------------------------------------------------
 feature_corr = (
     df_encoded.corr(numeric_only=True)["Mental_Health_Risk"]
-    .drop("Mental_Health_Risk")
+    .drop(["Mental_Health_Risk", "respondent_id"])
     .sort_values(key=abs, ascending=False)
 )
 weak_features = feature_corr[feature_corr.abs() < 0.03].index.tolist()
@@ -121,13 +185,26 @@ print(f"Final modeling dataset shape: {model_df.shape}")
 # ---------------------------------------------------------------------
 # 7. Train / test split
 # ---------------------------------------------------------------------
-X = model_df.drop(columns=["Mental_Health_Risk"])
+# Synthetic rows are perturbed copies of a real respondent, so a naive
+# random split could put a respondent's real row in training and its
+# near-identical synthetic siblings in test (or vice versa) - inflating
+# the reported score. StratifiedGroupKFold keeps every row that shares
+# a respondent_id on the same side of the split while still balancing
+# the Low Risk / High Risk classes across the split.
+X = model_df.drop(columns=["Mental_Health_Risk", "respondent_id"])
 y = model_df["Mental_Health_Risk"]
+groups = model_df["respondent_id"]
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y
-)
-print(f"Train: {X_train.shape}, Test: {X_test.shape}")
+from sklearn.model_selection import StratifiedGroupKFold
+
+sgkf = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
+train_idx, test_idx = next(sgkf.split(X, y, groups=groups))
+
+X_train, X_test = X.iloc[train_idx].reset_index(drop=True), X.iloc[test_idx].reset_index(drop=True)
+y_train, y_test = y.iloc[train_idx].reset_index(drop=True), y.iloc[test_idx].reset_index(drop=True)
+
+overlap = set(groups.iloc[train_idx]) & set(groups.iloc[test_idx])
+print(f"Train: {X_train.shape}, Test: {X_test.shape}, respondent overlap between splits: {len(overlap)}")
 
 # ---------------------------------------------------------------------
 # 8. Scaling
@@ -258,7 +335,8 @@ print(importances.head(10).round(4))
 # ---------------------------------------------------------------------
 # 13. Persist model + preprocessing bundle
 # ---------------------------------------------------------------------
-with open("model.pkl", "wb") as f:
+os.makedirs("model", exist_ok=True)
+with open("model/model.pkl", "wb") as f:
     pickle.dump(final_model, f)
 
 preprocessing_bundle = {
@@ -280,7 +358,196 @@ preprocessing_bundle = {
         "roc_auc": float(roc_auc_score(y_test, final_proba)),
     },
 }
-with open("preprocessing.pkl", "wb") as f:
+with open("model/preprocessing.pkl", "wb") as f:
     pickle.dump(preprocessing_bundle, f)
 
 print("\nSaved model.pkl and preprocessing.pkl")
+
+# ---------------------------------------------------------------------
+# 14. Analysis plots + metrics export (for the app's Analytics page)
+# ---------------------------------------------------------------------
+import json
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from sklearn.metrics import RocCurveDisplay, roc_curve
+
+PLOTS_DIR = "static/images/plots"
+os.makedirs(PLOTS_DIR, exist_ok=True)
+
+PALETTE = {
+    "ink": "#202a33", "dusk": "#24344d", "sage": "#6e9887",
+    "amber": "#d6a253", "danger": "#b3563f", "paper": "#f3f1ec",
+    "mist": "#c9d6d3",
+}
+plt.rcParams.update({
+    "figure.facecolor": PALETTE["paper"], "axes.facecolor": PALETTE["paper"],
+    "axes.edgecolor": "#d8d3c6", "axes.labelcolor": PALETTE["ink"],
+    "text.color": PALETTE["ink"], "xtick.color": PALETTE["ink"],
+    "ytick.color": PALETTE["ink"], "font.size": 10, "figure.dpi": 130,
+})
+
+# 14a. Model comparison - grouped bar chart across all metrics
+metrics_cols = ["Accuracy", "Precision", "Recall", "F1 Score", "ROC AUC"]
+fig, ax = plt.subplots(figsize=(10, 5.5))
+x = np.arange(len(results_df))
+width = 0.15
+colors = [PALETTE["dusk"], PALETTE["sage"], PALETTE["amber"], PALETTE["danger"], "#7a8ba0"]
+for i, col in enumerate(metrics_cols):
+    ax.bar(x + i * width, results_df[col], width, label=col, color=colors[i])
+ax.set_xticks(x + width * 2)
+ax.set_xticklabels(results_df["Model"], rotation=20, ha="right")
+ax.set_ylim(0, 1.05)
+ax.set_title("Model comparison across evaluation metrics")
+ax.legend(loc="lower right", ncol=3, fontsize=8, frameon=False)
+ax.spines[["top", "right"]].set_visible(False)
+fig.tight_layout()
+fig.savefig(f"{PLOTS_DIR}/model_comparison.png")
+plt.close(fig)
+
+# 14b. F1 score ranking - horizontal bar, sorted
+fig, ax = plt.subplots(figsize=(9, 5))
+f1_sorted = results_df.sort_values("F1 Score")
+bar_colors = [PALETTE["amber"] if m == final_model_name.replace(" (Tuned)", "") else PALETTE["dusk"]
+              for m in f1_sorted["Model"]]
+ax.barh(f1_sorted["Model"], f1_sorted["F1 Score"], color=bar_colors)
+for i, v in enumerate(f1_sorted["F1 Score"]):
+    ax.text(v + 0.01, i, f"{v:.3f}", va="center", fontsize=9)
+ax.set_xlim(0, 1.05)
+ax.set_title("F1 score by algorithm (test set)")
+ax.spines[["top", "right"]].set_visible(False)
+fig.tight_layout()
+fig.savefig(f"{PLOTS_DIR}/f1_scores.png")
+plt.close(fig)
+
+# 14c. Confusion matrix - final model
+fig, ax = plt.subplots(figsize=(5, 4.5))
+cm = confusion_matrix(y_test, final_preds)
+im = ax.imshow(cm, cmap="Greens")
+for (i, j), v in np.ndenumerate(cm):
+    ax.text(j, i, str(v), ha="center", va="center",
+             color="white" if v > cm.max() / 2 else PALETTE["ink"], fontsize=14, fontweight="bold")
+ax.set_xticks([0, 1]); ax.set_xticklabels(["Low Risk", "High Risk"])
+ax.set_yticks([0, 1]); ax.set_yticklabels(["Low Risk", "High Risk"])
+ax.set_xlabel("Predicted"); ax.set_ylabel("Actual")
+ax.set_title(f"Confusion matrix — {final_model_name}")
+fig.tight_layout()
+fig.savefig(f"{PLOTS_DIR}/confusion_matrix.png")
+plt.close(fig)
+
+# 14d. ROC curves - all models overlaid
+fig, ax = plt.subplots(figsize=(7, 6))
+palette_cycle = [PALETTE["dusk"], PALETTE["sage"], PALETTE["amber"], PALETTE["danger"],
+                  "#7a8ba0", "#9b6b9e", "#5a8f9e"]
+for i, (name, mdl) in enumerate(fitted_models.items()):
+    proba = mdl.predict_proba(X_test_scaled)[:, 1]
+    fpr, tpr, _ = roc_curve(y_test, proba)
+    auc_val = roc_auc_score(y_test, proba)
+    ax.plot(fpr, tpr, label=f"{name} (AUC={auc_val:.3f})", color=palette_cycle[i % len(palette_cycle)], linewidth=2)
+ax.plot([0, 1], [0, 1], linestyle="--", color="#aaa", linewidth=1)
+ax.set_xlabel("False Positive Rate"); ax.set_ylabel("True Positive Rate")
+ax.set_title("ROC curves — all algorithms")
+ax.legend(fontsize=8, loc="lower right")
+ax.spines[["top", "right"]].set_visible(False)
+fig.tight_layout()
+fig.savefig(f"{PLOTS_DIR}/roc_curves.png")
+plt.close(fig)
+
+# 14e. Feature importance - final model
+fig, ax = plt.subplots(figsize=(8, 6))
+top_importances = importances.head(12).sort_values()
+ax.barh(top_importances.index, top_importances.values, color=PALETTE["sage"])
+ax.set_title(f"Feature importance — {final_model_name}")
+ax.spines[["top", "right"]].set_visible(False)
+fig.tight_layout()
+fig.savefig(f"{PLOTS_DIR}/feature_importance.png")
+plt.close(fig)
+
+# 14f. Class balance before / after SMOTE-style oversampling
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+before_counts = pd.Series(y_train).value_counts().sort_index()
+after_counts = pd.Series(y_train_bal).value_counts().sort_index()
+labels = ["Low Risk", "High Risk"]
+axes[0].bar(labels, before_counts.values, color=[PALETTE["sage"], PALETTE["danger"]])
+axes[0].set_title("Training set — before balancing")
+axes[1].bar(labels, after_counts.values, color=[PALETTE["sage"], PALETTE["danger"]])
+axes[1].set_title("Training set — after balancing")
+for a in axes:
+    a.spines[["top", "right"]].set_visible(False)
+fig.tight_layout()
+fig.savefig(f"{PLOTS_DIR}/class_balance.png")
+plt.close(fig)
+
+# 14g. Correlation heatmap of modeling features vs target
+fig, ax = plt.subplots(figsize=(7, 8))
+corr_all = model_df.corr(numeric_only=True)["Mental_Health_Risk"].drop(["Mental_Health_Risk", "respondent_id"]).sort_values()
+bar_colors2 = [PALETTE["danger"] if v < 0 else PALETTE["sage"] for v in corr_all.values]
+ax.barh(corr_all.index, corr_all.values, color=bar_colors2)
+ax.axvline(0, color="#888", linewidth=0.8)
+ax.set_title("Feature correlation with Mental_Health_Risk")
+ax.spines[["top", "right"]].set_visible(False)
+fig.tight_layout()
+fig.savefig(f"{PLOTS_DIR}/correlation.png")
+plt.close(fig)
+
+print(f"\nSaved 7 analysis plots to {PLOTS_DIR}/")
+
+# 14i. Dataset composition - real vs synthetic
+fig, ax = plt.subplots(figsize=(6, 4.5))
+comp_counts = df["data_source"].value_counts()
+ax.bar(comp_counts.index, comp_counts.values, color=[PALETTE["dusk"], PALETTE["amber"]])
+for i, v in enumerate(comp_counts.values):
+    ax.text(i, v + max(comp_counts.values) * 0.01, str(v), ha="center", fontsize=10)
+ax.set_title("Dataset composition — real vs. synthetic rows")
+ax.spines[["top", "right"]].set_visible(False)
+fig.tight_layout()
+fig.savefig(f"{PLOTS_DIR}/dataset_composition.png")
+plt.close(fig)
+print("Saved dataset_composition.png")
+
+# 14h. Export metrics table (incl. F1) as JSON for the Django Analytics page
+analytics_export = {
+    "final_model_name": final_model_name,
+    "generated_at": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+    "dataset_shape": {
+        "rows": int(df.shape[0]),
+        "real_rows": int((df["data_source"] == "real").sum()),
+        "synthetic_rows": int((df["data_source"] == "synthetic").sum()),
+        "features_used": int(X.shape[1]),
+    },
+    "class_balance": {
+        "before": {"Low Risk": int(before_counts.get(0, 0)), "High Risk": int(before_counts.get(1, 0))},
+        "after": {"Low Risk": int(after_counts.get(0, 0)), "High Risk": int(after_counts.get(1, 0))},
+    },
+    "model_results": results_df.rename(
+        columns={"F1 Score": "F1_Score", "ROC AUC": "ROC_AUC"}
+    ).round(4).to_dict(orient="records"),
+    "best_params": grid_search.best_params_,
+    "final_test_metrics": preprocessing_bundle["test_metrics"],
+    "top_features": [{"feature": k, "importance": round(float(v), 4)} for k, v in importances.head(12).items()],
+    "weak_features_dropped": weak_features,
+    "plots": [
+        {"file": "dataset_composition.png", "title": "Dataset composition",
+         "description": "Real survey respondents vs. synthetically generated rows used for training."},
+        {"file": "model_comparison.png", "title": "Model comparison across metrics",
+         "description": "Accuracy, precision, recall, F1 and ROC AUC for every algorithm tested."},
+        {"file": "f1_scores.png", "title": "F1 score by algorithm",
+         "description": "Algorithms ranked by F1 score on the held-out test set."},
+        {"file": "confusion_matrix.png", "title": "Confusion matrix",
+         "description": f"Predicted vs actual outcomes for the final model ({final_model_name})."},
+        {"file": "roc_curves.png", "title": "ROC curves",
+         "description": "True vs false positive rate trade-off for every algorithm tested."},
+        {"file": "feature_importance.png", "title": "Feature importance",
+         "description": f"Top contributing features for the final model ({final_model_name})."},
+        {"file": "class_balance.png", "title": "Class balance before/after SMOTE",
+         "description": "Training-set label distribution before and after synthetic oversampling."},
+        {"file": "correlation.png", "title": "Feature correlation with target",
+         "description": "Pearson correlation of each engineered feature with Mental_Health_Risk."},
+    ],
+}
+with open("model/analytics.json", "w") as f:
+    json.dump(analytics_export, f, indent=2)
+
+print("Saved model/analytics.json")
+
