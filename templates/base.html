@@ -24,6 +24,7 @@
         <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
           <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">Home</a></li>
           <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'history' %}active{% endif %}" href="{% url 'history' %}">History</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'analytics' %}active{% endif %}" href="{% url 'analytics' %}">Analytics</a></li>
           <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'about' %}">About</a></li>
           <li class="nav-item ms-lg-2">
             <div class="form-check form-switch d-flex align-items-center text-white-50 px-2" title="Toggle dark mode">
@@ -72,6 +73,7 @@
           <h6 class="text-uppercase small font-mono" style="letter-spacing:.08em; color:#8d97a3;">Project</h6>
           <ul class="list-unstyled small">
             <li class="mb-2"><a href="{% url 'about' %}">Model &amp; methodology</a></li>
+            <li class="mb-2"><a href="{% url 'analytics' %}">Model analytics</a></li>
             <li class="mb-2"><a href="{% url 'download_history' %}">Download prediction data</a></li>
           </ul>
         </div>

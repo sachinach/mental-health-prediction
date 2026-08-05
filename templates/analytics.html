@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Analytics — Mental Health Risk Prediction{% endblock %}
+
+{% block content %}
+<section class="section-tight" style="background: var(--dusk-deep); color: var(--paper);">
+  <div class="container">
+    <span class="eyebrow">Model analysis</span>
+    <h1 class="font-display mt-2 mb-2" style="font-size: 2.2rem;">Analytics</h1>
+    {% if data %}
+    <p class="mb-0" style="color: rgba(243,241,236,.75); max-width: 42rem;">Every algorithm benchmarked during training, evaluated on the same held-out test set — accuracy, precision, recall, F1 score and ROC AUC — plus the full set of diagnostic plots.</p>
+    {% endif %}
+  </div>
+</section>
+
+{% if not data %}
+<section class="section">
+  <div class="container">
+    <div class="form-card text-center py-5">
+      <i class="bi bi-bar-chart" style="font-size: 2.5rem; color: var(--sage-deep);"></i>
+      <h5 class="font-display mt-3">Analytics not available yet</h5>
+      <p class="text-secondary mb-0">Run <code>python train_pipeline.py</code> from the project root to generate the metrics and plots.</p>
+    </div>
+  </div>
+</section>
+{% else %}
+
+<section class="section-tight">
+  <div class="container">
+    <div class="row g-3 text-center">
+      <div class="col-6 col-lg-3">
+        <div class="form-card">
+          <div class="font-mono small text-secondary">Final model</div>
+          <div class="font-display" style="font-size:1.15rem;">{{ data.final_model_name }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="form-card">
+          <div class="font-mono small text-secondary">Test F1 score</div>
+          <div class="font-display" style="font-size:1.4rem; color: var(--sage-deep);">{{ data.final_test_metrics.f1|floatformat:3 }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="form-card">
+          <div class="font-mono small text-secondary">Test ROC AUC</div>
+          <div class="font-display" style="font-size:1.4rem; color: var(--sage-deep);">{{ data.final_test_metrics.roc_auc|floatformat:3 }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="form-card">
+          <div class="font-mono small text-secondary">Trained on</div>
+          <div class="font-display" style="font-size:1.15rem;">{{ data.dataset_shape.rows }} rows</div>
+          <div class="small text-secondary mt-1">{{ data.dataset_shape.real_rows }} real + {{ data.dataset_shape.synthetic_rows }} synthetic</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section pt-0">
+  <div class="container">
+    <div class="form-card mb-5">
+      <h2 class="section-title mb-3" style="font-size: 1.3rem;">Algorithm comparison</h2>
+      <div class="table-responsive">
+        <table class="table table-hover history-table mb-0">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Accuracy</th>
+              <th>Precision</th>
+              <th>Recall</th>
+              <th>F1 Score</th>
+              <th>ROC AUC</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in data.model_results %}
+            <tr {% if row.Model in data.final_model_name %}style="background: rgba(214,162,83,.12);"{% endif %}>
+              <td>
+                {{ row.Model }}
+                {% if row.Model in data.final_model_name %}<span class="badge badge-risk-low px-2 py-1 rounded-pill ms-2">Selected</span>{% endif %}
+              </td>
+              <td class="font-mono">{{ row.Accuracy }}</td>
+              <td class="font-mono">{{ row.Precision }}</td>
+              <td class="font-mono">{{ row.Recall }}</td>
+              <td class="font-mono fw-bold">{{ row.F1_Score }}</td>
+              <td class="font-mono">{{ row.ROC_AUC }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if data.best_params %}
+      <p class="small text-secondary mt-3 mb-0">Best hyperparameters (grid search, 3-fold CV): <span class="font-mono">{{ data.best_params }}</span></p>
+      {% endif %}
+    </div>
+
+    <div class="text-center mb-4">
+      <span class="section-eyebrow">Diagnostic plots</span>
+      <h2 class="section-title mt-2">Generated at training time</h2>
+    </div>
+
+    <div class="row g-4">
+      {% for plot in data.plots %}
+      <div class="col-lg-6 reveal-on-scroll">
+        <div class="form-card h-100">
+          <h5 class="font-display mb-1" style="font-size: 1.05rem; color: var(--dusk-deep);">{{ plot.title }}</h5>
+          <p class="small text-secondary mb-3">{{ plot.description }}</p>
+          <img src="{% static 'images/plots/' %}{{ plot.file }}" alt="{{ plot.title }}" class="img-fluid rounded" style="border: 1px solid #e7e3d9;">
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if data.top_features %}
+    <div class="form-card mt-5">
+      <h2 class="section-title mb-3" style="font-size: 1.3rem;">Top contributing features</h2>
+      <div class="table-responsive">
+        <table class="table table-hover history-table mb-0">
+          <thead><tr><th>Feature</th><th>Importance</th></tr></thead>
+          <tbody>
+            {% for feat in data.top_features %}
+            <tr><td>{{ feat.feature }}</td><td class="font-mono">{{ feat.importance }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <p class="small text-secondary mt-4 text-center">Generated {{ data.generated_at }} · {{ data.dataset_shape.features_used }} features used after selection · {{ data.weak_features_dropped|length }} weak feature(s) dropped.</p>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -28,11 +28,13 @@
           <h2 class="section-title" style="font-size: 1.4rem;">Machine learning workflow</h2>
           <ol class="text-secondary" style="line-height: 2;">
             <li><strong>Data cleaning</strong> — duplicate removal, median imputation for missing survey responses, category normalization.</li>
+            <li><strong>Synthetic data generation</strong> — the 500 real respondents are augmented with 1,500 synthetic rows (bootstrapped from a real respondent, with small bounded noise added to the numeric answers) to give the model more training signal.</li>
             <li><strong>Target construction</strong> — clinician-rated severity collapsed into a Low Risk / High Risk binary label.</li>
             <li><strong>Feature engineering</strong> — a Wellbeing Index (sleep, activity, mood, screen time) and a Pressure Index (workload weighted by work-life balance).</li>
             <li><strong>Encoding</strong> — label encoding for gender, one-hot encoding for occupation.</li>
             <li><strong>Feature selection</strong> — features with negligible correlation to the target (|r| &lt; 0.03) were dropped.</li>
             <li><strong>Scaling</strong> — numeric features standardized with a scaler fit on the training split only.</li>
+            <li><strong>Leak-safe split</strong> — a stratified, respondent-grouped split keeps every synthetic row on the same side of the train/test boundary as the real respondent it was derived from, so the test score isn't inflated by near-duplicate rows leaking across the split.</li>
             <li><strong>Class balancing</strong> — a nearest-neighbor interpolation (SMOTE-style) oversampled the minority class in the training set only.</li>
             <li><strong>Model comparison &amp; tuning</strong> — seven algorithms benchmarked; the strongest performer tuned with grid search over cross-validation.</li>
           </ol>
